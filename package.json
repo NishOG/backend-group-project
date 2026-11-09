@@ -1,0 +1,25 @@
+{
+  "name": "gamezone-arcade-bdf",
+  "version": "1.0.0",
+  "description": "GameZone Arcade backend for the BDF group assignment",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "express",
+    "sqlite",
+    "backend",
+    "gamezone"
+  ],
+  "author": "Nishant Kumar Thakur",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

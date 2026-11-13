@@ -25,6 +25,11 @@ A gamer books a console for a time slot, and the backend stores that relationshi
 project-root/
 ├── data/
 │   └── gamezone.db
+├── database/
+│   ├── database.js
+│   └── schema.sql
+├── tests/
+│   └── db.test.js
 ├── .gitignore
 ├── package.json
 ├── README.md

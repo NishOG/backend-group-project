@@ -1,109 +1,15 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const {
+  db,
+  runQuery,
+  getQuery,
+  allQuery,
+  getJoinedBookings,
+  initializeDatabase,
+} = require('./database/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DB_DIR, 'gamezone.db');
-
-fs.mkdirSync(DB_DIR, { recursive: true });
-
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Failed to open SQLite database:', err.message);
-    process.exit(1);
-  }
-
-  console.log('Connected to SQLite database at:', DB_PATH);
-});
-
-function runQuery(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      resolve({
-        id: this.lastID,
-        changes: this.changes,
-      });
-    });
-  });
-}
-
-function getQuery(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      resolve(row);
-    });
-  });
-}
-
-function allQuery(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      resolve(rows);
-    });
-  });
-}
-
-async function initializeDatabase() {
-  db.serialize(() => {
-    db.run('PRAGMA foreign_keys = ON');
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS gamers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        phone TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS consoles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        platform TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'available',
-        price_per_hour REAL NOT NULL CHECK(price_per_hour >= 0),
-        is_deleted INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gamer_id INTEGER NOT NULL,
-        console_id INTEGER NOT NULL,
-        booking_date TEXT NOT NULL,
-        hours INTEGER NOT NULL CHECK(hours > 0),
-        total_amount REAL NOT NULL CHECK(total_amount >= 0),
-        status TEXT NOT NULL DEFAULT 'confirmed',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (gamer_id) REFERENCES gamers(id),
-        FOREIGN KEY (console_id) REFERENCES consoles(id)
-      )
-    `);
-  });
-}
 
 function isValidString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -419,23 +325,7 @@ app.get('/bookings', async (req, res) => {
 
 app.get('/bookings/join', async (req, res) => {
   try {
-    const bookings = await allQuery(`
-      SELECT
-        b.id,
-        g.name AS gamer_name,
-        c.name AS console_name,
-        c.platform,
-        b.booking_date,
-        b.hours,
-        b.total_amount,
-        b.status
-      FROM bookings b
-      INNER JOIN gamers g ON g.id = b.gamer_id
-      INNER JOIN consoles c ON c.id = b.console_id
-      WHERE c.is_deleted = 0
-      ORDER BY b.id ASC
-    `);
-
+    const bookings = await getJoinedBookings();
     return res.status(200).json(bookings);
   } catch (error) {
     return res.status(500).json({ error: 'Unable to fetch booking details.', message: error.message });
@@ -444,23 +334,7 @@ app.get('/bookings/join', async (req, res) => {
 
 app.get('/bookings/details', async (req, res) => {
   try {
-    const bookings = await allQuery(`
-      SELECT
-        b.id,
-        g.name AS gamer_name,
-        c.name AS console_name,
-        c.platform,
-        b.booking_date,
-        b.hours,
-        b.total_amount,
-        b.status
-      FROM bookings b
-      INNER JOIN gamers g ON g.id = b.gamer_id
-      INNER JOIN consoles c ON c.id = b.console_id
-      WHERE c.is_deleted = 0
-      ORDER BY b.id ASC
-    `);
-
+    const bookings = await getJoinedBookings();
     return res.status(200).json(bookings);
   } catch (error) {
     return res.status(500).json({ error: 'Unable to fetch booking details.', message: error.message });
@@ -594,16 +468,20 @@ app.use((req, res) => {
 });
 
 async function startServer() {
-  await initializeDatabase();
+  try {
+    await initializeDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`GameZone Arcade server running on http://localhost:${PORT}`);
-  });
+    app.listen(PORT, () => {
+      console.log(`GameZone Arcade server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Fatal: Failed to start server due to database initialization failure:', error.message);
+    process.exit(1);
+  }
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer();
+}
 
-module.exports = { app, db };
+module.exports = { app, db, startServer };

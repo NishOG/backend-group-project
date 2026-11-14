@@ -81,7 +81,6 @@ Example response:
 Stores player details.
 
 Columns:
-
 - `id` - unique gamer ID
 - `name` - gamer name
 - `email` - gamer email
@@ -93,13 +92,12 @@ Columns:
 Stores console availability.
 
 Columns:
-
 - `id` - unique console ID
 - `name` - console model name
 - `platform` - PS5, Xbox, PC, etc.
 - `status` - available or maintenance
 - `price_per_hour` - hourly rate
-- `is_deleted` - soft delete flag
+- `is_deleted` - soft delete flag (0 = active, 1 = deleted)
 - `created_at` - creation time
 - `updated_at` - last update time
 
@@ -108,7 +106,6 @@ Columns:
 Stores a gamer booking for a console.
 
 Columns:
-
 - `id` - unique booking ID
 - `gamer_id` - linked gamer
 - `console_id` - linked console
@@ -121,194 +118,45 @@ Columns:
 ## API endpoints
 
 ### Gamers
-
-```http
-GET /gamers
-GET /gamers/:id
-POST /gamers
-PUT /gamers/:id
-DELETE /gamers/:id
-```
+- `GET /gamers` - Get all gamers
+- `GET /gamers/:id` - Get gamer by ID
+- `POST /gamers` - Create a gamer
+- `PUT /gamers/:id` - Update gamer
+- `DELETE /gamers/:id` - Delete gamer
 
 ### Consoles
-
-```http
-GET /consoles
-GET /consoles/:id
-POST /consoles
-PUT /consoles/:id
-DELETE /consoles/:id
-POST /consoles/:id/restore
-```
+- `GET /consoles` - Get active consoles (hides deleted)
+- `GET /consoles/:id` - Get active console by ID
+- `POST /consoles` - Create console
+- `PUT /consoles/:id` - Update console
+- `DELETE /consoles/:id` - Soft delete console (marks is_deleted = 1)
+- `POST /consoles/:id/restore` - Restore deleted console (marks is_deleted = 0)
 
 ### Bookings
+- `GET /bookings` - Get all bookings
+- `GET /bookings/:id` - Get booking by ID
+- `POST /bookings` - Create booking
+- `PUT /bookings/:id` - Update booking
+- `DELETE /bookings/:id` - Delete booking
+- `GET /bookings/join` - View booking details with gamer and console names
 
-```http
-GET /bookings
-GET /bookings/:id
-POST /bookings
-PUT /bookings/:id
-DELETE /bookings/:id
-GET /bookings/join
-GET /bookings/details
-```
+---
 
-## Soft delete concept
+## Part 5 – Soft Delete and Restore (Individual Feature)
 
-The console table includes `is_deleted`.
+**Feature Responsibility:** Part 5 – Twist Rule: Soft Delete and Restore  
+**Contributor:** Pantala Niharika  
 
-- `0` means the console is active.
-- `1` means the console is deleted logically, but the record still exists in the database.
+Instead of permanently removing a console from the database, this feature updates the `is_deleted` column.
 
-A normal `GET /consoles` query hides deleted consoles.
+### Behavior:
+- `DELETE /consoles/:id`: Updates `is_deleted = 1`. Returns `200` on success, or `404` if the console does not exist or is already deleted.
+- `GET /consoles`: Automatically hides deleted consoles (`WHERE is_deleted = 0`). Also respects platform search (`?platform=...`).
+- `GET /consoles/:id`: Returns console details if active. Returns `404` if the console is deleted or does not exist.
+- `POST /consoles/:id/restore`: Updates `is_deleted = 0`. Returns `200` on success, or `404` if the console does not exist or is already active.
 
-This is called soft deletion because we do not physically remove the database row.
-
-## Search using query parameters
-
-You can search consoles by platform.
-
-Example:
-
-```http
-GET /consoles?platform=PlayStation
-```
-
-This is a query parameter because it is sent in the URL after `?`.
-
-## JOIN endpoint
-
-The booking join endpoint combines the `bookings`, `gamers`, and `consoles` tables.
-
-Example:
-
-```http
-GET /bookings/join
-```
-
-It returns booking data together with the gamer name and console name.
-
-SQL concept used:
-
-```sql
-SELECT
-  b.id,
-  g.name AS gamer_name,
-  c.name AS console_name,
-  c.platform,
-  b.booking_date,
-  b.hours,
-  b.total_amount,
-  b.status
-FROM bookings b
-INNER JOIN gamers g ON g.id = b.gamer_id
-INNER JOIN consoles c ON c.id = b.console_id
-WHERE c.is_deleted = 0;
-```
-
-## Example Postman requests
-
-### Create a gamer
-
-```http
-POST http://localhost:3000/gamers
-Content-Type: application/json
-
-{
-  "name": "Aarav",
-  "email": "aarav@example.com",
-  "phone": "9876543210"
-}
-```
-
-### Create a console
-
-```http
-POST http://localhost:3000/consoles
-Content-Type: application/json
-
-{
-  "name": "PlayStation 5",
-  "platform": "PlayStation",
-  "status": "available",
-  "price_per_hour": 250
-}
-```
-
-### Create a booking
-
-```http
-POST http://localhost:3000/bookings
-Content-Type: application/json
-
-{
-  "gamer_id": 1,
-  "console_id": 1,
-  "booking_date": "2026-11-09",
-  "hours": 2,
-  "total_amount": 500,
-  "status": "confirmed"
-}
-```
-
-### View booking details with JOIN
-
-```http
-GET http://localhost:3000/bookings/join
-```
-
-### Soft delete a console
-
-```http
-DELETE http://localhost:3000/consoles/1
-```
-
-### Restore a deleted console
-
-```http
-POST http://localhost:3000/consoles/1/restore
-```
-
-## Error handling
-
-The API returns JSON error responses such as:
-
-```json
-{
-  "error": "Console name is required."
-}
-```
-
-This is useful for beginners because the client clearly sees what went wrong.
-
-## Learning notes
-
-This backend uses the following SQL basics:
-
-- `CREATE TABLE`
-- `INSERT INTO`
-- `SELECT`
-- `WHERE`
-- `ORDER BY`
-- `UPDATE`
-- `DELETE`
-- `INNER JOIN`
-
-Parameterised queries are used with `?` placeholders to protect against invalid data and SQL injection.
-
-## Assignment alignment
-
-This project matches the course requirements:
-
-- Express server with routes
-- SQLite database with 3 related tables
-- CRUD for consoles and other supporting data
-- join endpoint for bookings with gamer and console names
-- input validation and clear errors
-- console search using query parameters
-- soft delete and restore logic
-- Postman-ready API endpoints
-
-## Notes
-
-This project is intentionally simple and beginner-friendly so it is easy to understand and extend.
+### Compulsory Test Sequence (Console ID 4):
+1. **DELETE /consoles/4** → `200 OK` (Soft deleted)
+2. **GET /consoles/4** → `404 Not Found` (Console is hidden)
+3. **POST /consoles/4/restore** → `200 OK` (Console restored)
+4. **GET /consoles/4** → `200 OK` (Console is active again)

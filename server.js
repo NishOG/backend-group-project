@@ -1,14 +1,43 @@
+
+// ============================================================
+// GAMEZONE ARCADE - BACKEND SERVER
+// ============================================================
+//
+// PERSON 1 NISHANT KUMAR THAKUR 252U1R3067: SERVER AND ROUTES
+// Express setup, middleware, server configuration, API routes,
+// HTTP methods, status codes and server startup.
+//
+// PERSON 5: SOFT DELETE AND RESTORE
+// Console soft deletion, restoration, visibility and
+// prevention of bookings for deleted consoles.
+//
+// Database: SQLite
+// ============================================================
+
+
+// ============================================================
+// PART 1: IMPORTS AND SERVER CONFIGURATION
+// ============================================================
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
+
 const DB_DIR = path.join(__dirname, 'data');
 const DB_PATH = path.join(DB_DIR, 'gamezone.db');
 
+// Create the data folder if it does not exist.
 fs.mkdirSync(DB_DIR, { recursive: true });
+
+
+// ============================================================
+// PART 1: DATABASE CONNECTION
+// ============================================================
 
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
@@ -19,12 +48,17 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   console.log('Connected to SQLite database at:', DB_PATH);
 });
 
+
+// ============================================================
+// PART 2: DATABASE QUERY HELPER FUNCTIONS
+// These functions allow SQLite queries to use async/await.
+// ============================================================
+
 function runQuery(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) {
-        reject(err);
-        return;
+        return reject(err);
       }
 
       resolve({
@@ -39,8 +73,7 @@ function getQuery(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) {
-        reject(err);
-        return;
+        return reject(err);
       }
 
       resolve(row);
@@ -52,8 +85,7 @@ function allQuery(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) {
-        reject(err);
-        return;
+        return reject(err);
       }
 
       resolve(rows);
@@ -61,49 +93,66 @@ function allQuery(sql, params = []) {
   });
 }
 
+
+// ============================================================
+// PART 2: DATABASE INITIALIZATION
+// Creates the gamers, consoles and bookings tables.
+// ============================================================
+
 async function initializeDatabase() {
-  db.serialize(() => {
-    db.run('PRAGMA foreign_keys = ON');
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS gamers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        phone TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Enable foreign key constraints.
+  await runQuery('PRAGMA foreign_keys = ON');
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS consoles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        platform TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'available',
-        price_per_hour REAL NOT NULL CHECK(price_per_hour >= 0),
-        is_deleted INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Gamers Table
+  await runQuery(`
+    CREATE TABLE IF NOT EXISTS gamers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      phone TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gamer_id INTEGER NOT NULL,
-        console_id INTEGER NOT NULL,
-        booking_date TEXT NOT NULL,
-        hours INTEGER NOT NULL CHECK(hours > 0),
-        total_amount REAL NOT NULL CHECK(total_amount >= 0),
-        status TEXT NOT NULL DEFAULT 'confirmed',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (gamer_id) REFERENCES gamers(id),
-        FOREIGN KEY (console_id) REFERENCES consoles(id)
-      )
-    `);
-  });
+   // PART 5: 0 = active console; 1 = soft-deleted console.
+  await runQuery(`
+    CREATE TABLE IF NOT EXISTS consoles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'available',
+      price_per_hour REAL NOT NULL CHECK(price_per_hour >= 0),
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Bookings Table
+  await runQuery(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      gamer_id INTEGER NOT NULL,
+      console_id INTEGER NOT NULL,
+      booking_date TEXT NOT NULL,
+      hours INTEGER NOT NULL CHECK(hours > 0),
+      total_amount REAL NOT NULL CHECK(total_amount >= 0),
+      status TEXT NOT NULL DEFAULT 'confirmed',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+      FOREIGN KEY (gamer_id) REFERENCES gamers(id),
+      FOREIGN KEY (console_id) REFERENCES consoles(id)
+    )
+  `);
+
+  console.log('Database tables initialized successfully.');
 }
+
+
+// ============================================================
+// PART 2: COMMON VALIDATION FUNCTIONS
+// ============================================================
 
 function isValidString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -113,74 +162,178 @@ function normalizeName(value) {
   return value.trim();
 }
 
+
+// ============================================================
+// PART 1: EXPRESS MIDDLEWARE
+// Allows the server to receive JSON request bodies.
+// ============================================================
+
 app.use(express.json());
 
+
+// ============================================================
+// PART 1: HOME ROUTE
+// GET /
+// Displays the API status and available main routes.
+// ============================================================
+
+app.get('/', (req, res) => {
+  return res.status(200).json({
+    status: 'OK',
+    message: 'GameZone Arcade API is running.',
+    routes: [
+      'GET /health',
+      'GET /gamers',
+      'GET /gamers/:id',
+      'POST /gamers',
+      'PUT /gamers/:id',
+      'DELETE /gamers/:id',
+      'GET /consoles',
+      'GET /consoles/:id',
+      'POST /consoles',
+      'PUT /consoles/:id',
+      'DELETE /consoles/:id',
+      'POST /consoles/:id/restore',
+      'GET /bookings',
+      'GET /bookings/:id',
+      'POST /bookings',
+      'PUT /bookings/:id',
+      'DELETE /bookings/:id',
+      'GET /bookings/join'
+    ]
+  });
+});
+
+
+// ============================================================
+// PART 1: HEALTH CHECK ROUTE
+// GET /health
+// Checks whether the API server is running.
+// ============================================================
+
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     status: 'OK',
     message: 'GameZone Arcade API is running.',
   });
 });
 
+
+// ============================================================
+// PART 3: GAMER ROUTES - CRUD OPERATIONS
+// ============================================================
+
+
+// GET /gamers
+// Fetch all gamers.
+
 app.get('/gamers', async (req, res) => {
   try {
-    const gamers = await allQuery('SELECT * FROM gamers ORDER BY id ASC');
-    res.status(200).json(gamers);
+    const gamers = await allQuery(
+      'SELECT * FROM gamers ORDER BY id ASC'
+    );
+
+    return res.status(200).json(gamers);
+
   } catch (error) {
-    res.status(500).json({ error: 'Unable to fetch gamers.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch gamers.',
+      message: error.message,
+    });
   }
 });
+
+
+// GET /gamers/:id
+// Fetch a particular gamer using their ID.
 
 app.get('/gamers/:id', async (req, res) => {
   try {
-    const gamer = await getQuery('SELECT * FROM gamers WHERE id = ?', [req.params.id]);
+    const gamer = await getQuery(
+      'SELECT * FROM gamers WHERE id = ?',
+      [req.params.id]
+    );
 
     if (!gamer) {
-      return res.status(404).json({ error: 'Gamer not found.' });
+      return res.status(404).json({
+        error: 'Gamer not found.',
+      });
     }
 
     return res.status(200).json(gamer);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch gamer.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch gamer.',
+      message: error.message,
+    });
   }
 });
+
+
+// POST /gamers
+// Create a new gamer.
 
 app.post('/gamers', async (req, res) => {
   const { name, email, phone } = req.body;
 
   if (!isValidString(name)) {
-    return res.status(400).json({ error: 'Name is required.' });
+    return res.status(400).json({
+      error: 'Name is required.',
+    });
   }
 
   if (!isValidString(email)) {
-    return res.status(400).json({ error: 'Email is required.' });
+    return res.status(400).json({
+      error: 'Email is required.',
+    });
   }
 
   try {
     const result = await runQuery(
       'INSERT INTO gamers (name, email, phone) VALUES (?, ?, ?)',
-      [normalizeName(name), email.trim(), phone ? phone.trim() : null]
+      [
+        normalizeName(name),
+        email.trim(),
+        phone ? phone.trim() : null
+      ]
     );
 
-    const gamer = await getQuery('SELECT * FROM gamers WHERE id = ?', [result.id]);
+    const gamer = await getQuery(
+      'SELECT * FROM gamers WHERE id = ?',
+      [result.id]
+    );
+
     return res.status(201).json({
       message: 'Gamer created successfully.',
       gamer,
     });
+
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(409).json({ error: 'A gamer with this email already exists.' });
+      return res.status(409).json({
+        error: 'A gamer with this email already exists.',
+      });
     }
 
-    return res.status(500).json({ error: 'Unable to create gamer.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to create gamer.',
+      message: error.message,
+    });
   }
 });
+
+
+// PUT /gamers/:id
+// Update an existing gamer's information.
 
 app.put('/gamers/:id', async (req, res) => {
   const { name, email, phone } = req.body;
 
-  if (!name && !email && !phone) {
-    return res.status(400).json({ error: 'Provide at least one field to update.' });
+  if (name === undefined && email === undefined && phone === undefined) {
+    return res.status(400).json({
+      error: 'Provide at least one field to update.',
+    });
   }
 
   const fields = [];
@@ -188,23 +341,29 @@ app.put('/gamers/:id', async (req, res) => {
 
   if (name !== undefined) {
     if (!isValidString(name)) {
-      return res.status(400).json({ error: 'Name cannot be empty.' });
+      return res.status(400).json({
+        error: 'Name cannot be empty.',
+      });
     }
+
     fields.push('name = ?');
     values.push(normalizeName(name));
   }
 
   if (email !== undefined) {
     if (!isValidString(email)) {
-      return res.status(400).json({ error: 'Email cannot be empty.' });
+      return res.status(400).json({
+        error: 'Email cannot be empty.',
+      });
     }
+
     fields.push('email = ?');
     values.push(email.trim());
   }
 
   if (phone !== undefined) {
     fields.push('phone = ?');
-    values.push(phone.trim());
+    values.push(phone ? phone.trim() : null);
   }
 
   try {
@@ -214,33 +373,81 @@ app.put('/gamers/:id', async (req, res) => {
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Gamer not found.' });
+      return res.status(404).json({
+        error: 'Gamer not found.',
+      });
     }
 
-    const gamer = await getQuery('SELECT * FROM gamers WHERE id = ?', [req.params.id]);
-    return res.status(200).json({ message: 'Gamer updated successfully.', gamer });
+    const gamer = await getQuery(
+      'SELECT * FROM gamers WHERE id = ?',
+      [req.params.id]
+    );
+
+    return res.status(200).json({
+      message: 'Gamer updated successfully.',
+      gamer,
+    });
+
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(409).json({ error: 'A gamer with this email already exists.' });
+      return res.status(409).json({
+        error: 'A gamer with this email already exists.',
+      });
     }
 
-    return res.status(500).json({ error: 'Unable to update gamer.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to update gamer.',
+      message: error.message,
+    });
   }
 });
+
+
+// DELETE /gamers/:id
+// Permanently delete a gamer.
 
 app.delete('/gamers/:id', async (req, res) => {
   try {
-    const result = await runQuery('DELETE FROM gamers WHERE id = ?', [req.params.id]);
+    const result = await runQuery(
+      'DELETE FROM gamers WHERE id = ?',
+      [req.params.id]
+    );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Gamer not found.' });
+      return res.status(404).json({
+        error: 'Gamer not found.',
+      });
     }
 
-    return res.status(200).json({ message: 'Gamer deleted successfully.' });
+    return res.status(200).json({
+      message: 'Gamer deleted successfully.',
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to delete gamer.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to delete gamer.',
+      message: error.message,
+    });
   }
 });
+
+
+// ============================================================
+// PART 5: SOFT DELETE AND RESTORE - CONSOLE ROUTES
+// ============================================================
+//
+// Person 5's contribution:
+// - Hide deleted consoles.
+// - Prevent access to deleted consoles.
+// - Soft delete consoles instead of permanently deleting them.
+// - Restore previously deleted consoles.
+//
+// ============================================================
+
+
+// GET /consoles
+// PART 5: Display only active consoles.
+// Deleted consoles (is_deleted = 1) are hidden.
 
 app.get('/consoles', async (req, res) => {
   const { platform } = req.query;
@@ -257,11 +464,20 @@ app.get('/consoles', async (req, res) => {
     sql += ' ORDER BY id ASC';
 
     const consoles = await allQuery(sql, params);
+
     return res.status(200).json(consoles);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch consoles.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch consoles.',
+      message: error.message,
+    });
   }
 });
+
+
+// GET /consoles/:id
+// PART 5: Do not display a deleted console.
 
 app.get('/consoles/:id', async (req, res) => {
   try {
@@ -271,51 +487,100 @@ app.get('/consoles/:id', async (req, res) => {
     );
 
     if (!consoleItem) {
-      return res.status(404).json({ error: 'Console not found or it has been deleted.' });
+      return res.status(404).json({
+        error: 'Console not found or it has been deleted.',
+      });
     }
 
     return res.status(200).json(consoleItem);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch console.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch console.',
+      message: error.message,
+    });
   }
 });
+
+
+// POST /consoles
+// Create a new console.
+// PART 5: New consoles are active by default (is_deleted = 0).
 
 app.post('/consoles', async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
 
   if (!isValidString(name)) {
-    return res.status(400).json({ error: 'Console name is required.' });
+    return res.status(400).json({
+      error: 'Console name is required.',
+    });
   }
 
   if (!isValidString(platform)) {
-    return res.status(400).json({ error: 'Platform is required.' });
+    return res.status(400).json({
+      error: 'Platform is required.',
+    });
   }
 
-  if (price_per_hour === undefined || price_per_hour === null || Number.isNaN(Number(price_per_hour)) || Number(price_per_hour) < 0) {
-    return res.status(400).json({ error: 'price_per_hour must be a non-negative number.' });
+  if (
+    price_per_hour === undefined ||
+    price_per_hour === null ||
+    Number.isNaN(Number(price_per_hour)) ||
+    Number(price_per_hour) < 0
+  ) {
+    return res.status(400).json({
+      error: 'price_per_hour must be a non-negative number.',
+    });
   }
 
   try {
     const result = await runQuery(
-      'INSERT INTO consoles (name, platform, status, price_per_hour) VALUES (?, ?, ?, ?)',
-      [normalizeName(name), normalizeName(platform), status || 'available', Number(price_per_hour)]
+      `INSERT INTO consoles
+       (name, platform, status, price_per_hour, is_deleted)
+       VALUES (?, ?, ?, ?, 0)`,
+      [
+        normalizeName(name),
+        normalizeName(platform),
+        status || 'available',
+        Number(price_per_hour)
+      ]
     );
 
-    const consoleItem = await getQuery('SELECT * FROM consoles WHERE id = ?', [result.id]);
+    const consoleItem = await getQuery(
+      'SELECT * FROM consoles WHERE id = ?',
+      [result.id]
+    );
+
     return res.status(201).json({
       message: 'Console created successfully.',
       console: consoleItem,
     });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to create console.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to create console.',
+      message: error.message,
+    });
   }
 });
+
+
+// PUT /consoles/:id
+// Update an active console.
+// PART 5: Deleted consoles cannot be updated.
 
 app.put('/consoles/:id', async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
 
-  if (name === undefined && platform === undefined && status === undefined && price_per_hour === undefined) {
-    return res.status(400).json({ error: 'Provide at least one field to update.' });
+  if (
+    name === undefined &&
+    platform === undefined &&
+    status === undefined &&
+    price_per_hour === undefined
+  ) {
+    return res.status(400).json({
+      error: 'Provide at least one field to update.',
+    });
   }
 
   const fields = [];
@@ -323,99 +588,195 @@ app.put('/consoles/:id', async (req, res) => {
 
   if (name !== undefined) {
     if (!isValidString(name)) {
-      return res.status(400).json({ error: 'Console name cannot be empty.' });
+      return res.status(400).json({
+        error: 'Console name cannot be empty.',
+      });
     }
+
     fields.push('name = ?');
     values.push(normalizeName(name));
   }
 
   if (platform !== undefined) {
     if (!isValidString(platform)) {
-      return res.status(400).json({ error: 'Platform cannot be empty.' });
+      return res.status(400).json({
+        error: 'Platform cannot be empty.',
+      });
     }
+
     fields.push('platform = ?');
     values.push(normalizeName(platform));
   }
 
   if (status !== undefined) {
     if (!isValidString(status)) {
-      return res.status(400).json({ error: 'Status cannot be empty.' });
+      return res.status(400).json({
+        error: 'Status cannot be empty.',
+      });
     }
+
     fields.push('status = ?');
     values.push(status.trim());
   }
 
   if (price_per_hour !== undefined) {
-    if (Number.isNaN(Number(price_per_hour)) || Number(price_per_hour) < 0) {
-      return res.status(400).json({ error: 'price_per_hour must be a non-negative number.' });
+    if (
+      Number.isNaN(Number(price_per_hour)) ||
+      Number(price_per_hour) < 0
+    ) {
+      return res.status(400).json({
+        error: 'price_per_hour must be a non-negative number.',
+      });
     }
+
     fields.push('price_per_hour = ?');
     values.push(Number(price_per_hour));
   }
 
   try {
     const result = await runQuery(
-      `UPDATE consoles SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0`,
+      `UPDATE consoles
+       SET ${fields.join(', ')},
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND is_deleted = 0`,
       [...values, req.params.id]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Console not found or it has been deleted.' });
+      return res.status(404).json({
+        error: 'Console not found or it has been deleted.',
+      });
     }
 
-    const consoleItem = await getQuery('SELECT * FROM consoles WHERE id = ?', [req.params.id]);
-    return res.status(200).json({ message: 'Console updated successfully.', console: consoleItem });
+    const consoleItem = await getQuery(
+      'SELECT * FROM consoles WHERE id = ?',
+      [req.params.id]
+    );
+
+    return res.status(200).json({
+      message: 'Console updated successfully.',
+      console: consoleItem,
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to update console.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to update console.',
+      message: error.message,
+    });
   }
 });
+
+
+// ============================================================
+// PART 5: SOFT DELETE CONSOLE
+// DELETE /consoles/:id
+//
+// Instead of permanently removing a console from the database,
+// this route changes is_deleted from 0 to 1.
+//
+// The console remains stored and can be restored later.
+// ============================================================
 
 app.delete('/consoles/:id', async (req, res) => {
   try {
     const result = await runQuery(
-      'UPDATE consoles SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0',
+      `UPDATE consoles
+       SET is_deleted = 1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND is_deleted = 0`,
       [req.params.id]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Console not found or already deleted.' });
+      return res.status(404).json({
+        error: 'Console not found or already deleted.',
+      });
     }
 
-    return res.status(200).json({ message: 'Console soft deleted successfully.' });
+    return res.status(200).json({
+      message: 'Console soft deleted successfully.',
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to delete console.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to delete console.',
+      message: error.message,
+    });
   }
 });
+
+
+// ============================================================
+// PART 5: RESTORE SOFT-DELETED CONSOLE
+// POST /consoles/:id/restore
+//
+// This route changes is_deleted from 1 back to 0.
+// Only a previously deleted console can be restored.
+// ============================================================
 
 app.post('/consoles/:id/restore', async (req, res) => {
   try {
     const result = await runQuery(
-      'UPDATE consoles SET is_deleted = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      `UPDATE consoles
+       SET is_deleted = 0,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND is_deleted = 1`,
       [req.params.id]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Console not found.' });
+      return res.status(404).json({
+        error: 'Console not found or already active.',
+      });
     }
 
-    const consoleItem = await getQuery('SELECT * FROM consoles WHERE id = ?', [req.params.id]);
+    const consoleItem = await getQuery(
+      'SELECT * FROM consoles WHERE id = ?',
+      [req.params.id]
+    );
+
     return res.status(200).json({
       message: 'Console restored successfully.',
       console: consoleItem,
     });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to restore console.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to restore console.',
+      message: error.message,
+    });
   }
 });
 
+
+// ============================================================
+// PART 3: BOOKING ROUTES
+// ============================================================
+
+
+// GET /bookings
+// Fetch all bookings.
+
 app.get('/bookings', async (req, res) => {
   try {
-    const bookings = await allQuery('SELECT * FROM bookings ORDER BY id ASC');
+    const bookings = await allQuery(
+      'SELECT * FROM bookings ORDER BY id ASC'
+    );
+
     return res.status(200).json(bookings);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch bookings.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch bookings.',
+      message: error.message,
+    });
   }
 });
+
+
+// GET /bookings/join
+// Fetch booking details with gamer and console information.
+// Uses INNER JOIN to combine three tables.
 
 app.get('/bookings/join', async (req, res) => {
   try {
@@ -437,10 +798,18 @@ app.get('/bookings/join', async (req, res) => {
     `);
 
     return res.status(200).json(bookings);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch booking details.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch booking details.',
+      message: error.message,
+    });
   }
 });
+
+
+// GET /bookings/details
+// Alternative route for viewing joined booking information.
 
 app.get('/bookings/details', async (req, res) => {
   try {
@@ -462,67 +831,160 @@ app.get('/bookings/details', async (req, res) => {
     `);
 
     return res.status(200).json(bookings);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch booking details.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch booking details.',
+      message: error.message,
+    });
   }
 });
+
+
+// GET /bookings/:id
+// Fetch one booking using its ID.
 
 app.get('/bookings/:id', async (req, res) => {
   try {
-    const booking = await getQuery('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+    const booking = await getQuery(
+      'SELECT * FROM bookings WHERE id = ?',
+      [req.params.id]
+    );
 
     if (!booking) {
-      return res.status(404).json({ error: 'Booking not found.' });
+      return res.status(404).json({
+        error: 'Booking not found.',
+      });
     }
 
     return res.status(200).json(booking);
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to fetch booking.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to fetch booking.',
+      message: error.message,
+    });
   }
 });
 
-app.post('/bookings', async (req, res) => {
-  const { gamer_id, console_id, booking_date, hours, total_amount, status } = req.body;
 
-  if (!gamer_id || !console_id || !booking_date || !hours || total_amount === undefined) {
+// POST /bookings
+// Create a new booking.
+
+app.post('/bookings', async (req, res) => {
+  const {
+    gamer_id,
+    console_id,
+    booking_date,
+    hours,
+    total_amount,
+    status
+  } = req.body;
+
+  if (
+    !gamer_id ||
+    !console_id ||
+    !booking_date ||
+    !hours ||
+    total_amount === undefined
+  ) {
     return res.status(400).json({
       error: 'gamer_id, console_id, booking_date, hours and total_amount are required.',
     });
   }
 
-  if (Number.isNaN(Number(gamer_id)) || Number.isNaN(Number(console_id)) || Number.isNaN(Number(hours)) || Number.isNaN(Number(total_amount))) {
-    return res.status(400).json({ error: 'gamer_id, console_id, hours and total_amount must be numeric values.' });
+  if (
+    Number.isNaN(Number(gamer_id)) ||
+    Number.isNaN(Number(console_id)) ||
+    Number.isNaN(Number(hours)) ||
+    Number.isNaN(Number(total_amount))
+  ) {
+    return res.status(400).json({
+      error: 'gamer_id, console_id, hours and total_amount must be numeric values.',
+    });
   }
 
   try {
-    const gamer = await getQuery('SELECT id FROM gamers WHERE id = ?', [gamer_id]);
-    const consoleItem = await getQuery('SELECT id FROM consoles WHERE id = ? AND is_deleted = 0', [console_id]);
+    const gamer = await getQuery(
+      'SELECT id FROM gamers WHERE id = ?',
+      [gamer_id]
+    );
+
+    // PART 5: Prevent bookings for deleted consoles.
+    const consoleItem = await getQuery(
+      'SELECT id FROM consoles WHERE id = ? AND is_deleted = 0',
+      [console_id]
+    );
 
     if (!gamer) {
-      return res.status(404).json({ error: 'Gamer not found.' });
+      return res.status(404).json({
+        error: 'Gamer not found.',
+      });
     }
 
     if (!consoleItem) {
-      return res.status(404).json({ error: 'Console not found or it has been deleted.' });
+      return res.status(404).json({
+        error: 'Console not found or it has been deleted.',
+      });
     }
 
     const result = await runQuery(
-      'INSERT INTO bookings (gamer_id, console_id, booking_date, hours, total_amount, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [gamer_id, console_id, booking_date, Number(hours), Number(total_amount), status || 'confirmed']
+      `INSERT INTO bookings
+       (gamer_id, console_id, booking_date, hours, total_amount, status)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        gamer_id,
+        console_id,
+        booking_date,
+        Number(hours),
+        Number(total_amount),
+        status || 'confirmed'
+      ]
     );
 
-    const booking = await getQuery('SELECT * FROM bookings WHERE id = ?', [result.id]);
-    return res.status(201).json({ message: 'Booking created successfully.', booking });
+    const booking = await getQuery(
+      'SELECT * FROM bookings WHERE id = ?',
+      [result.id]
+    );
+
+    return res.status(201).json({
+      message: 'Booking created successfully.',
+      booking,
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to create booking.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to create booking.',
+      message: error.message,
+    });
   }
 });
 
-app.put('/bookings/:id', async (req, res) => {
-  const { gamer_id, console_id, booking_date, hours, total_amount, status } = req.body;
 
-  if (gamer_id === undefined && console_id === undefined && booking_date === undefined && hours === undefined && total_amount === undefined && status === undefined) {
-    return res.status(400).json({ error: 'Provide at least one field to update.' });
+// PUT /bookings/:id
+// Update an existing booking.
+
+app.put('/bookings/:id', async (req, res) => {
+  const {
+    gamer_id,
+    console_id,
+    booking_date,
+    hours,
+    total_amount,
+    status
+  } = req.body;
+
+  if (
+    gamer_id === undefined &&
+    console_id === undefined &&
+    booking_date === undefined &&
+    hours === undefined &&
+    total_amount === undefined &&
+    status === undefined
+  ) {
+    return res.status(400).json({
+      error: 'Provide at least one field to update.',
+    });
   }
 
   const fields = [];
@@ -560,38 +1022,82 @@ app.put('/bookings/:id', async (req, res) => {
 
   try {
     const result = await runQuery(
-      `UPDATE bookings SET ${fields.join(', ')} WHERE id = ?`,
+      `UPDATE bookings
+       SET ${fields.join(', ')}
+       WHERE id = ?`,
       [...values, req.params.id]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Booking not found.' });
+      return res.status(404).json({
+        error: 'Booking not found.',
+      });
     }
 
-    const booking = await getQuery('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
-    return res.status(200).json({ message: 'Booking updated successfully.', booking });
+    const booking = await getQuery(
+      'SELECT * FROM bookings WHERE id = ?',
+      [req.params.id]
+    );
+
+    return res.status(200).json({
+      message: 'Booking updated successfully.',
+      booking,
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to update booking.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to update booking.',
+      message: error.message,
+    });
   }
 });
+
+
+// DELETE /bookings/:id
+// Permanently delete a booking.
 
 app.delete('/bookings/:id', async (req, res) => {
   try {
-    const result = await runQuery('DELETE FROM bookings WHERE id = ?', [req.params.id]);
+    const result = await runQuery(
+      'DELETE FROM bookings WHERE id = ?',
+      [req.params.id]
+    );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Booking not found.' });
+      return res.status(404).json({
+        error: 'Booking not found.',
+      });
     }
 
-    return res.status(200).json({ message: 'Booking deleted successfully.' });
+    return res.status(200).json({
+      message: 'Booking deleted successfully.',
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to delete booking.', message: error.message });
+    return res.status(500).json({
+      error: 'Unable to delete booking.',
+      message: error.message,
+    });
   }
 });
 
+
+// ============================================================
+// PART 1: 404 ROUTE HANDLER
+// Handles requests for routes that do not exist.
+// ============================================================
+
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found.' });
+  return res.status(404).json({
+    error: 'Route not found.',
+  });
 });
+
+
+// ============================================================
+// PART 1: SERVER STARTUP
+// Initialize the database before starting the Express server.
+// ============================================================
 
 async function startServer() {
   await initializeDatabase();
@@ -601,9 +1107,26 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
 
-module.exports = { app, db };
+// Start the server only when this file is run directly.
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
+
+
+// ============================================================
+// MODULE EXPORTS
+// Allows the app and database functions to be used elsewhere.
+// ============================================================
+
+module.exports = {
+  app,
+  db,
+  initializeDatabase,
+  runQuery,
+  getQuery,
+  allQuery
+};

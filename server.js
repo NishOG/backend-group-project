@@ -3,20 +3,31 @@
 // GAMEZONE ARCADE - BACKEND SERVER
 // ============================================================
 //
-// PERSON 1 NISHANT KUMAR THAKUR 252U1R3067: SERVER AND ROUTES
-// Express setup, middleware, server configuration, API routes,
+// PERSON 1: NISHANT KUMAR THAKUR - 252U1R3067
+// Server and routes: Express setup, middleware, API routing,
 // HTTP methods, status codes and server startup.
 //
-// PERSON 5: SOFT DELETE AND RESTORE
-// Console soft deletion, restoration, visibility and
-// prevention of bookings for deleted consoles.
+// PERSON 2: SREE CHARANI - 252U1R3059
+// SQL database: SQLite setup, tables, relationships and queries.
+//
+// PERSON 3: ADITYA PRASOON - 252U1R3095
+// REST endpoints: CRUD operations and the booking JOIN endpoint.
+//
+// PERSON 4: MANOJ KUMAR REDDY - 252U1R3076
+// Validation: input checks, error responses and PUT request checks.
+//
+// PERSON 5: NIHARIKA - 252U1R3070
+// Soft delete and restore: hide, retrieve and restore consoles.
+//
+// PERSON 6: TILAK - 252U1R3096
+// Documentation, Postman testing and submission screenshots.
 //
 // Database: SQLite
 // ============================================================
 
 
 // ============================================================
-// PART 1: IMPORTS AND SERVER CONFIGURATION
+// PERSON 1: IMPORTS AND SERVER CONFIGURATION
 // ============================================================
 
 const express = require('express');
@@ -36,7 +47,7 @@ fs.mkdirSync(DB_DIR, { recursive: true });
 
 
 // ============================================================
-// PART 1: DATABASE CONNECTION
+// PERSON 2: DATABASE CONNECTION
 // ============================================================
 
 const db = new sqlite3.Database(DB_PATH, (err) => {
@@ -50,7 +61,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 
 // ============================================================
-// PART 2: DATABASE QUERY HELPER FUNCTIONS
+// PERSON 2: DATABASE QUERY HELPER FUNCTIONS
 // These functions allow SQLite queries to use async/await.
 // ============================================================
 
@@ -95,7 +106,7 @@ function allQuery(sql, params = []) {
 
 
 // ============================================================
-// PART 2: DATABASE INITIALIZATION
+// PERSON 2: DATABASE INITIALIZATION AND TABLE SCHEMA
 // Creates the gamers, consoles and bookings tables.
 // ============================================================
 
@@ -115,7 +126,7 @@ async function initializeDatabase() {
     )
   `);
 
-   // PART 5: 0 = active console; 1 = soft-deleted console.
+   // PERSON 5: 0 = active console; 1 = soft-deleted console.
   await runQuery(`
     CREATE TABLE IF NOT EXISTS consoles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,7 +162,7 @@ async function initializeDatabase() {
 
 
 // ============================================================
-// PART 2: COMMON VALIDATION FUNCTIONS
+// PERSON 4: COMMON INPUT VALIDATION FUNCTIONS
 // ============================================================
 
 function isValidString(value) {
@@ -186,7 +197,8 @@ function normalizeName(value) {
 
 
 // ============================================================
-// PART 1: EXPRESS MIDDLEWARE
+// PERSON 1: EXPRESS JSON MIDDLEWARE
+// PERSON 4: REQUEST-BODY VALIDATION MIDDLEWARE
 // Allows the server to receive JSON request bodies.
 // ============================================================
 
@@ -204,7 +216,7 @@ function requireJsonObject(req, res, next) {
 
 
 // ============================================================
-// PART 1: HOME ROUTE
+// PERSON 1: HOME ROUTE
 // GET /
 // Displays the API status and available main routes.
 // ============================================================
@@ -238,7 +250,7 @@ app.get('/', (req, res) => {
 
 
 // ============================================================
-// PART 1: HEALTH CHECK ROUTE
+// PERSON 1: HEALTH CHECK ROUTE
 // GET /health
 // Checks whether the API server is running.
 // ============================================================
@@ -252,11 +264,12 @@ app.get('/health', (req, res) => {
 
 
 // ============================================================
-// PART 3: GAMER ROUTES - CRUD OPERATIONS
+// PERSON 3: GAMER CRUD ROUTES
+// PERSON 4: GAMER REQUEST VALIDATION
 // ============================================================
 
 
-// GET /gamers
+// PERSON 3: GET /gamers
 // Fetch all gamers.
 
 app.get('/gamers', async (req, res) => {
@@ -276,7 +289,7 @@ app.get('/gamers', async (req, res) => {
 });
 
 
-// GET /gamers/:id
+// PERSON 3: GET /gamers/:id
 // Fetch a particular gamer using their ID.
 
 app.get('/gamers/:id', async (req, res) => {
@@ -303,7 +316,8 @@ app.get('/gamers/:id', async (req, res) => {
 });
 
 
-// POST /gamers
+// PERSON 3: POST /gamers
+// PERSON 4: Validate the new gamer fields.
 // Create a new gamer.
 
 app.post('/gamers', requireJsonObject, async (req, res) => {
@@ -356,7 +370,8 @@ app.post('/gamers', requireJsonObject, async (req, res) => {
 });
 
 
-// PUT /gamers/:id
+// PERSON 3: PUT /gamers/:id
+// PERSON 4: Validate the fields being updated.
 // Update an existing gamer's information.
 
 app.put('/gamers/:id', requireJsonObject, async (req, res) => {
@@ -435,7 +450,7 @@ app.put('/gamers/:id', requireJsonObject, async (req, res) => {
 });
 
 
-// DELETE /gamers/:id
+// PERSON 3: DELETE /gamers/:id
 // Permanently delete a gamer.
 
 app.delete('/gamers/:id', async (req, res) => {
@@ -465,7 +480,9 @@ app.delete('/gamers/:id', async (req, res) => {
 
 
 // ============================================================
-// PART 5: SOFT DELETE AND RESTORE - CONSOLE ROUTES
+// PERSON 3: CONSOLE CRUD ROUTES
+// PERSON 4: CONSOLE SEARCH AND INPUT VALIDATION
+// PERSON 5: SOFT DELETE AND RESTORE
 // ============================================================
 //
 // Person 5's contribution:
@@ -477,8 +494,9 @@ app.delete('/gamers/:id', async (req, res) => {
 // ============================================================
 
 
-// GET /consoles
-// PART 5: Display only active consoles.
+// PERSON 3: GET /consoles
+// PERSON 4: Filter consoles by the platform query parameter.
+// PERSON 5: Display only active consoles.
 // Deleted consoles (is_deleted = 1) are hidden.
 
 app.get('/consoles', async (req, res) => {
@@ -508,8 +526,8 @@ app.get('/consoles', async (req, res) => {
 });
 
 
-// GET /consoles/:id
-// PART 5: Do not display a deleted console.
+// PERSON 3: GET /consoles/:id
+// PERSON 5: Do not display a deleted console.
 
 app.get('/consoles/:id', async (req, res) => {
   try {
@@ -535,9 +553,10 @@ app.get('/consoles/:id', async (req, res) => {
 });
 
 
-// POST /consoles
+// PERSON 3: POST /consoles
+// PERSON 4: Validate the new console fields.
 // Create a new console.
-// PART 5: New consoles are active by default (is_deleted = 0).
+// PERSON 5: New consoles are active by default (is_deleted = 0).
 
 app.post('/consoles', requireJsonObject, async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
@@ -592,9 +611,10 @@ app.post('/consoles', requireJsonObject, async (req, res) => {
 });
 
 
-// PUT /consoles/:id
+// PERSON 3: PUT /consoles/:id
+// PERSON 4: Validate the fields being updated.
 // Update an active console.
-// PART 5: Deleted consoles cannot be updated.
+// PERSON 5: Deleted consoles cannot be updated.
 
 app.put('/consoles/:id', requireJsonObject, async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
@@ -692,7 +712,7 @@ app.put('/consoles/:id', requireJsonObject, async (req, res) => {
 
 
 // ============================================================
-// PART 5: SOFT DELETE CONSOLE
+// PERSON 5: SOFT DELETE CONSOLE
 // DELETE /consoles/:id
 //
 // Instead of permanently removing a console from the database,
@@ -731,7 +751,7 @@ app.delete('/consoles/:id', async (req, res) => {
 
 
 // ============================================================
-// PART 5: RESTORE SOFT-DELETED CONSOLE
+// PERSON 5: RESTORE SOFT-DELETED CONSOLE
 // POST /consoles/:id/restore
 //
 // This route changes is_deleted from 1 back to 0.
@@ -774,11 +794,13 @@ app.post('/consoles/:id/restore', async (req, res) => {
 
 
 // ============================================================
-// PART 3: BOOKING ROUTES
+// PERSON 3: BOOKING CRUD AND JOIN ROUTES
+// PERSON 4: BOOKING INPUT VALIDATION
+// PERSON 5: PREVENT BOOKINGS USING DELETED CONSOLES
 // ============================================================
 
 
-// GET /bookings
+// PERSON 3: GET /bookings
 // Fetch all bookings.
 
 app.get('/bookings', async (req, res) => {
@@ -798,7 +820,7 @@ app.get('/bookings', async (req, res) => {
 });
 
 
-// GET /bookings/join
+// PERSON 3: GET /bookings/join
 // Fetch booking details with gamer and console information.
 // Uses INNER JOIN to combine three tables.
 
@@ -832,7 +854,7 @@ app.get('/bookings/join', async (req, res) => {
 });
 
 
-// GET /bookings/details
+// PERSON 3: GET /bookings/details
 // Alternative route for viewing joined booking information.
 
 app.get('/bookings/details', async (req, res) => {
@@ -865,7 +887,7 @@ app.get('/bookings/details', async (req, res) => {
 });
 
 
-// GET /bookings/:id
+// PERSON 3: GET /bookings/:id
 // Fetch one booking using its ID.
 
 app.get('/bookings/:id', async (req, res) => {
@@ -892,7 +914,9 @@ app.get('/bookings/:id', async (req, res) => {
 });
 
 
-// POST /bookings
+// PERSON 3: POST /bookings
+// PERSON 4: Validate booking fields.
+// PERSON 5: Reject bookings for deleted consoles.
 // Create a new booking.
 
 app.post('/bookings', requireJsonObject, async (req, res) => {
@@ -953,7 +977,7 @@ app.post('/bookings', requireJsonObject, async (req, res) => {
       [gamer_id]
     );
 
-    // PART 5: Prevent bookings for deleted consoles.
+    // PERSON 5: Prevent bookings for deleted consoles.
     const consoleItem = await getQuery(
       'SELECT id FROM consoles WHERE id = ? AND is_deleted = 0',
       [console_id]
@@ -1004,7 +1028,9 @@ app.post('/bookings', requireJsonObject, async (req, res) => {
 });
 
 
-// PUT /bookings/:id
+// PERSON 3: PUT /bookings/:id
+// PERSON 4: Validate booking updates.
+// PERSON 5: Reject updates that select deleted consoles.
 // Update an existing booking.
 
 app.put('/bookings/:id', requireJsonObject, async (req, res) => {
@@ -1158,7 +1184,7 @@ app.put('/bookings/:id', requireJsonObject, async (req, res) => {
 });
 
 
-// DELETE /bookings/:id
+// PERSON 3: DELETE /bookings/:id
 // Permanently delete a booking.
 
 app.delete('/bookings/:id', async (req, res) => {
@@ -1188,7 +1214,7 @@ app.delete('/bookings/:id', async (req, res) => {
 
 
 // ============================================================
-// PART 1: 404 ROUTE HANDLER
+// PERSON 1: 404 ROUTE HANDLER
 // Handles requests for routes that do not exist.
 // ============================================================
 
@@ -1198,6 +1224,7 @@ app.use((req, res) => {
   });
 });
 
+// PERSON 1: CENTRAL ERROR HANDLER
 app.use((error, req, res, next) => {
   if (res.headersSent) {
     return next(error);
@@ -1217,7 +1244,7 @@ app.use((error, req, res, next) => {
 
 
 // ============================================================
-// PART 1: SERVER STARTUP
+// PERSON 1: SERVER STARTUP
 // Initialize the database before starting the Express server.
 // ============================================================
 
@@ -1240,7 +1267,8 @@ if (require.main === module) {
 
 
 // ============================================================
-// MODULE EXPORTS
+// PERSON 1: EXPRESS APP EXPORT
+// PERSON 2: DATABASE AND QUERY HELPER EXPORTS
 // Allows the app and database functions to be used elsewhere.
 // ============================================================
 

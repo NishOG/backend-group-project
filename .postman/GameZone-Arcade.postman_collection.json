@@ -1,0 +1,751 @@
+{
+  "info": {
+    "_postman_id": "377e7659-0b35-44c4-a87b-a73bc5102c7f",
+    "name": "GameZone Arcade - API Testing",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59370588",
+    "_collection_link": "https://go.postman.co/collection/59370588-377e7659-0b35-44c4-a87b-a73bc5102c7f?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Health Check",
+      "item": [
+        {
+          "name": "Health Cheak",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Console CRUD",
+      "item": [
+        {
+          "name": "01 - Create Console",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"PlayStation 5\",\r\n  \"platform\": \"PlayStation\",\r\n  \"status\": \"available\",\r\n  \"price_per_hour\": 100\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/consoles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Get All Consoles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Get Console by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Update Console",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"PlayStation 5 Pro\",\r\n  \"platform\": \"PlayStation\",\r\n  \"status\": \"available\",\r\n  \"price_per_hour\": 150\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/consoles/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Delete Console",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles/3",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Verify Deleted Console",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles/3",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Console Search",
+      "item": [
+        {
+          "name": "01 - Search Consoles by Platform",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles?platform=PlayStation",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "PlayStation"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Search Consoles by Xbox",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles?platform=Xbox",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "Xbox"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Soft Delete & Restore",
+      "item": [
+        {
+          "name": "01 - Restore Console",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/consoles/3/restore",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles",
+                "3",
+                "restore"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Booking APIs & JOIN",
+      "item": [
+        {
+          "name": "01 - Create Gamer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Test Gamer\",\r\n  \"email\": \"test.gamer.20261115@example.com\",\r\n  \"phone\": \"9876543210\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/gamers",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "gamers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"gamer_id\": 4,\r\n  \"console_id\": 1,\r\n  \"booking_date\": \"2026-11-16\",\r\n  \"hours\": 2,\r\n  \"total_amount\": 500,\r\n  \"status\": \"confirmed\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Get Booking Details with JOIN",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/bookings/join",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings",
+                "join"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Get All Gamers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/gamers",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "gamers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Get Gamer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/gamers/4",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "gamers",
+                "4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Get Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/bookings/3",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 - Update Booking",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"hours\": 3,\r\n  \"total_amount\": 750,\r\n  \"status\": \"confirmed\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings/3",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09 - Delete Booking",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings/3",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Validation & Error Handling",
+      "item": [
+        {
+          "name": "01 - Create Console - Missing Name",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"platform\": \"PlayStation\",\r\n  \"status\": \"available\",\r\n  \"price_per_hour\": 150\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/consoles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Create Console - Missing Platform",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Nintendo Switch\",\r\n  \"status\": \"available\",\r\n  \"price_per_hour\": 150\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/consoles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Create Console - Invalid Price",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Nintendo Switch\",\r\n  \"platform\": \"Nintendo\",\r\n  \"status\": \"available\",\r\n  \"price_per_hour\": -100\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/consoles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "consoles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Create Gamer - Missing Email",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Test User\",\r\n  \"phone\": \"9876543210\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/gamers",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "gamers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Create Gamer - Duplicate Email",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Another Test Gamer\",\r\n  \"email\": \"test.gamer.20261115@example.com\",\r\n  \"phone\": \"9876543210\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/gamers",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "gamers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Create Booking - Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"console_id\": 1,\r\n  \"booking_date\": \"2026-11-16\",\r\n  \"hours\": 2,\r\n  \"total_amount\": 500\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Create Booking - Invalid Gamer ID",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"gamer_id\": 9999,\r\n  \"console_id\": 1,\r\n  \"booking_date\": \"2026-11-16\",\r\n  \"hours\": 2,\r\n  \"total_amount\": 500\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 - Create Booking - Invalid Console ID",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"gamer_id\": 4,\r\n  \"console_id\": 9999,\r\n  \"booking_date\": \"2026-11-16\",\r\n  \"hours\": 2,\r\n  \"total_amount\": 500\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09 - Create Booking - Invalid Numeric Values",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"gamer_id\": 4,\r\n  \"console_id\": 1,\r\n  \"booking_date\": \"2026-11-16\",\r\n  \"hours\": \"two\",\r\n  \"total_amount\": 500\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10 - Invalid Route - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/invalid-route",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "invalid-route"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

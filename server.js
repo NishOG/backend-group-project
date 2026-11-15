@@ -158,6 +158,28 @@ function isValidString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isValidNumericValue(value) {
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim().length === 0) {
+    return false;
+  }
+
+  return Number.isFinite(Number(value));
+}
+
+function isPositiveInteger(value) {
+  return isValidNumericValue(value) &&
+    Number.isSafeInteger(Number(value)) &&
+    Number(value) > 0;
+}
+
+function isNonNegativeNumber(value) {
+  return isValidNumericValue(value) && Number(value) >= 0;
+}
+
 function normalizeName(value) {
   return value.trim();
 }
@@ -169,6 +191,16 @@ function normalizeName(value) {
 // ============================================================
 
 app.use(express.json());
+
+function requireJsonObject(req, res, next) {
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return res.status(400).json({
+      error: 'Request body must be a JSON object.',
+    });
+  }
+
+  return next();
+}
 
 
 // ============================================================
@@ -274,7 +306,7 @@ app.get('/gamers/:id', async (req, res) => {
 // POST /gamers
 // Create a new gamer.
 
-app.post('/gamers', async (req, res) => {
+app.post('/gamers', requireJsonObject, async (req, res) => {
   const { name, email, phone } = req.body;
 
   if (!isValidString(name)) {
@@ -327,7 +359,7 @@ app.post('/gamers', async (req, res) => {
 // PUT /gamers/:id
 // Update an existing gamer's information.
 
-app.put('/gamers/:id', async (req, res) => {
+app.put('/gamers/:id', requireJsonObject, async (req, res) => {
   const { name, email, phone } = req.body;
 
   if (name === undefined && email === undefined && phone === undefined) {
@@ -507,7 +539,7 @@ app.get('/consoles/:id', async (req, res) => {
 // Create a new console.
 // PART 5: New consoles are active by default (is_deleted = 0).
 
-app.post('/consoles', async (req, res) => {
+app.post('/consoles', requireJsonObject, async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
 
   if (!isValidString(name)) {
@@ -522,12 +554,7 @@ app.post('/consoles', async (req, res) => {
     });
   }
 
-  if (
-    price_per_hour === undefined ||
-    price_per_hour === null ||
-    Number.isNaN(Number(price_per_hour)) ||
-    Number(price_per_hour) < 0
-  ) {
+  if (!isNonNegativeNumber(price_per_hour)) {
     return res.status(400).json({
       error: 'price_per_hour must be a non-negative number.',
     });
@@ -569,7 +596,7 @@ app.post('/consoles', async (req, res) => {
 // Update an active console.
 // PART 5: Deleted consoles cannot be updated.
 
-app.put('/consoles/:id', async (req, res) => {
+app.put('/consoles/:id', requireJsonObject, async (req, res) => {
   const { name, platform, status, price_per_hour } = req.body;
 
   if (
@@ -620,10 +647,7 @@ app.put('/consoles/:id', async (req, res) => {
   }
 
   if (price_per_hour !== undefined) {
-    if (
-      Number.isNaN(Number(price_per_hour)) ||
-      Number(price_per_hour) < 0
-    ) {
+    if (!isNonNegativeNumber(price_per_hour)) {
       return res.status(400).json({
         error: 'price_per_hour must be a non-negative number.',
       });
@@ -871,7 +895,7 @@ app.get('/bookings/:id', async (req, res) => {
 // POST /bookings
 // Create a new booking.
 
-app.post('/bookings', async (req, res) => {
+app.post('/bookings', requireJsonObject, async (req, res) => {
   const {
     gamer_id,
     console_id,
@@ -882,10 +906,10 @@ app.post('/bookings', async (req, res) => {
   } = req.body;
 
   if (
-    !gamer_id ||
-    !console_id ||
-    !booking_date ||
-    !hours ||
+    gamer_id === undefined ||
+    console_id === undefined ||
+    booking_date === undefined ||
+    hours === undefined ||
     total_amount === undefined
   ) {
     return res.status(400).json({
@@ -893,14 +917,33 @@ app.post('/bookings', async (req, res) => {
     });
   }
 
-  if (
-    Number.isNaN(Number(gamer_id)) ||
-    Number.isNaN(Number(console_id)) ||
-    Number.isNaN(Number(hours)) ||
-    Number.isNaN(Number(total_amount))
-  ) {
+  if (!isPositiveInteger(gamer_id) || !isPositiveInteger(console_id)) {
     return res.status(400).json({
-      error: 'gamer_id, console_id, hours and total_amount must be numeric values.',
+      error: 'gamer_id and console_id must be positive integers.',
+    });
+  }
+
+  if (!isValidString(booking_date)) {
+    return res.status(400).json({
+      error: 'booking_date is required and cannot be empty.',
+    });
+  }
+
+  if (!isPositiveInteger(hours)) {
+    return res.status(400).json({
+      error: 'hours must be a positive integer.',
+    });
+  }
+
+  if (!isNonNegativeNumber(total_amount)) {
+    return res.status(400).json({
+      error: 'total_amount must be a non-negative number.',
+    });
+  }
+
+  if (status !== undefined && !isValidString(status)) {
+    return res.status(400).json({
+      error: 'status cannot be empty.',
     });
   }
 
@@ -964,7 +1007,7 @@ app.post('/bookings', async (req, res) => {
 // PUT /bookings/:id
 // Update an existing booking.
 
-app.put('/bookings/:id', async (req, res) => {
+app.put('/bookings/:id', requireJsonObject, async (req, res) => {
   const {
     gamer_id,
     console_id,
@@ -991,36 +1034,98 @@ app.put('/bookings/:id', async (req, res) => {
   const values = [];
 
   if (gamer_id !== undefined) {
+    if (!isPositiveInteger(gamer_id)) {
+      return res.status(400).json({
+        error: 'gamer_id must be a positive integer.',
+      });
+    }
+
     fields.push('gamer_id = ?');
-    values.push(gamer_id);
+    values.push(Number(gamer_id));
   }
 
   if (console_id !== undefined) {
+    if (!isPositiveInteger(console_id)) {
+      return res.status(400).json({
+        error: 'console_id must be a positive integer.',
+      });
+    }
+
     fields.push('console_id = ?');
-    values.push(console_id);
+    values.push(Number(console_id));
   }
 
   if (booking_date !== undefined) {
+    if (!isValidString(booking_date)) {
+      return res.status(400).json({
+        error: 'booking_date cannot be empty.',
+      });
+    }
+
     fields.push('booking_date = ?');
     values.push(booking_date);
   }
 
   if (hours !== undefined) {
+    if (!isPositiveInteger(hours)) {
+      return res.status(400).json({
+        error: 'hours must be a positive integer.',
+      });
+    }
+
     fields.push('hours = ?');
     values.push(Number(hours));
   }
 
   if (total_amount !== undefined) {
+    if (!isNonNegativeNumber(total_amount)) {
+      return res.status(400).json({
+        error: 'total_amount must be a non-negative number.',
+      });
+    }
+
     fields.push('total_amount = ?');
     values.push(Number(total_amount));
   }
 
   if (status !== undefined) {
+    if (!isValidString(status)) {
+      return res.status(400).json({
+        error: 'status cannot be empty.',
+      });
+    }
+
     fields.push('status = ?');
-    values.push(status);
+    values.push(status.trim());
   }
 
   try {
+    if (gamer_id !== undefined) {
+      const gamer = await getQuery(
+        'SELECT id FROM gamers WHERE id = ?',
+        [Number(gamer_id)]
+      );
+
+      if (!gamer) {
+        return res.status(404).json({
+          error: 'Gamer not found.',
+        });
+      }
+    }
+
+    if (console_id !== undefined) {
+      const consoleItem = await getQuery(
+        'SELECT id FROM consoles WHERE id = ? AND is_deleted = 0',
+        [Number(console_id)]
+      );
+
+      if (!consoleItem) {
+        return res.status(404).json({
+          error: 'Console not found or it has been deleted.',
+        });
+      }
+    }
+
     const result = await runQuery(
       `UPDATE bookings
        SET ${fields.join(', ')}
@@ -1090,6 +1195,23 @@ app.delete('/bookings/:id', async (req, res) => {
 app.use((req, res) => {
   return res.status(404).json({
     error: 'Route not found.',
+  });
+});
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      error: 'Request body contains invalid JSON.',
+    });
+  }
+
+  console.error('Unhandled request error:', error);
+  return res.status(500).json({
+    error: 'Internal server error.',
   });
 });
 

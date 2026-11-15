@@ -281,6 +281,11 @@ The API returns JSON error responses such as:
 
 This is useful for beginners because the client clearly sees what went wrong.
 
+POST and PUT routes expect a JSON object. Malformed JSON, missing required
+fields, and invalid booking values return a 400 response with a JSON error.
+Booking updates also verify that referenced gamers exist and that the selected
+console is active.
+
 ## Learning notes
 
 This backend uses the following SQL basics:
